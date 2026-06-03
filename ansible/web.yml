@@ -6,23 +6,23 @@
 
   tasks:
     - name: Install required system packages
-      yum:
+      apt:
         name:
           - git
           - curl
           - nginx
-          - gcc-c++
+          - build-essential
           - make
         state: present
         update_cache: yes
 
     - name: Add NodeSource repository for Node.js 18.x
-      command: curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+      command: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
       args:
-        creates: /etc/yum.repos.d/nodesource-el.repo
+        creates: /etc/apt/sources.list.d/nodesource.list
 
     - name: Install Node.js
-      yum:
+      apt:
         name: nodejs
         state: present
 
