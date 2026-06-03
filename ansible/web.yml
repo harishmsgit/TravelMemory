@@ -17,7 +17,7 @@
         update_cache: yes
 
     - name: Add NodeSource repository for Node.js 18.x
-      command: curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+      shell: curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
       args:
         creates: /etc/apt/sources.list.d/nodesource.list
 
