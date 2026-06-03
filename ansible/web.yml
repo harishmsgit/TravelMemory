@@ -43,7 +43,7 @@
       copy:
         dest: "{{ app_dir }}/backend/.env"
         content: |
-          MONGO_URI=mongodb://{{ mongo_app_user }}:{{ mongo_app_password }}@{{ hostvars['db'].ansible_host }}:{{ mongodb_port }}/{{ mongo_db_name }}?authSource=admin
+          MONGO_URI={{ mongo_uri }}
           PORT={{ backend_port }}
         owner: "{{ app_user }}"
         group: "{{ app_user }}"

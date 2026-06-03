@@ -38,7 +38,7 @@
 
     - name: Wait for MongoDB to accept connections
       wait_for:
-        port: {{ mongodb_port }}
+        port: "{{ mongodb_port }}"
         host: 127.0.0.1
         state: started
         delay: 5

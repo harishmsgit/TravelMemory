@@ -9,3 +9,4 @@ mongo_app_password: "ChangeMe123!"
 mongo_root_user: "admin"
 mongo_root_password: "ChangeMeRoot123!"
 mongodb_port: 27017
+mongo_uri: "mongodb+srv://senharishms108:BtnHurryPot@26@atlas-cluster-harish-27.7gyzfqt.mongodb.net/travelmemory?retryWrites=true&w=majority"
