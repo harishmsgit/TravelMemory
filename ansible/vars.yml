@@ -1,6 +1,6 @@
 repo_url: "https://github.com/harishmsgit/TravelMemory.git"
-app_user: "ec2-user"
-app_dir: "/home/ec2-user/travelmemory"
+app_user: "ubuntu"
+app_dir: "/home/ubuntu/travelmemory"
 backend_port: 3001
 frontend_port: 80
 mongo_db_name: "travelmemory"
