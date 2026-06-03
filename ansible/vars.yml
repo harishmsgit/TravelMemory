@@ -1,0 +1,11 @@
+repo_url: "https://github.com/harishmsgit/TravelMemory.git"
+app_user: "ec2-user"
+app_dir: "/home/ec2-user/travelmemory"
+backend_port: 3001
+frontend_port: 80
+mongo_db_name: "travelmemory"
+mongo_app_user: "traveladmin"
+mongo_app_password: "ChangeMe123!"
+mongo_root_user: "admin"
+mongo_root_password: "ChangeMeRoot123!"
+mongodb_port: 27017

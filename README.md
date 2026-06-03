@@ -30,3 +30,12 @@ For frontend, you need to create `.env` file and put the following content (reme
 ```bash
 REACT_APP_BACKEND_URL=http://localhost:3001
 ```
+
+## AWS Deployment
+
+This project includes Terraform and Ansible support for full AWS deployment automation.
+
+- Terraform files are in `Terraform/`.
+- Ansible playbooks are in `ansible/`.
+
+After provisioning EC2 resources with Terraform, run the Ansible playbook from `ansible/site.yml` to configure the web and database servers.

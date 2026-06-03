@@ -1,0 +1,81 @@
+- name: Configure TravelMemory database server
+  hosts: db
+  become: true
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Install yum utilities and curl
+      yum:
+        name:
+          - yum-utils
+          - curl
+        state: present
+        update_cache: yes
+
+    - name: Create MongoDB yum repository file
+      copy:
+        dest: /etc/yum.repos.d/mongodb-org-6.0.repo
+        content: |
+          [mongodb-org-6.0]
+          name=MongoDB Repository
+          baseurl=https://repo.mongodb.org/yum/amazon/2/mongodb-org/6.0/x86_64/
+          gpgcheck=1
+          enabled=1
+          gpgkey=https://www.mongodb.org/static/pgp/server-6.0.asc
+        mode: '0644'
+
+    - name: Install MongoDB packages
+      yum:
+        name: mongodb-org
+        state: present
+
+    - name: Ensure mongod is enabled and started
+      service:
+        name: mongod
+        state: started
+        enabled: yes
+
+    - name: Wait for MongoDB to accept connections
+      wait_for:
+        port: {{ mongodb_port }}
+        host: 127.0.0.1
+        state: started
+        delay: 5
+        timeout: 60
+
+    - name: Create MongoDB admin user
+      shell: |
+        mongo admin --eval "db.createUser({user: '{{ mongo_root_user }}', pwd: '{{ mongo_root_password }}', roles:[{role:'root', db:'admin'}]})"
+      args:
+        warn: false
+      register: create_admin_result
+      failed_when: create_admin_result.rc != 0 and 'already exists' not in create_admin_result.stdout
+
+    - name: Create MongoDB application user
+      shell: |
+        mongo {{ mongo_db_name }} --eval "db.createUser({user: '{{ mongo_app_user }}', pwd: '{{ mongo_app_password }}', roles:[{role:'readWrite', db:'{{ mongo_db_name }}'}]})"
+      args:
+        warn: false
+      register: create_app_user_result
+      failed_when: create_app_user_result.rc != 0 and 'already exists' not in create_app_user_result.stdout
+
+    - name: Configure MongoDB bind IP for private network
+      lineinfile:
+        path: /etc/mongod.conf
+        regexp: '^\s*bindIp:'
+        line: '  bindIp: 0.0.0.0'
+        insertafter: '^net:'
+
+    - name: Enable MongoDB authorization
+      blockinfile:
+        path: /etc/mongod.conf
+        marker: '# {mark} ANSIBLE MANAGED BLOCK'
+        block: |
+          security:
+            authorization: enabled
+
+    - name: Restart mongod after configuration changes
+      service:
+        name: mongod
+        state: restarted

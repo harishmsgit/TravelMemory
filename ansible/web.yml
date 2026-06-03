@@ -1,0 +1,140 @@
+- name: Configure TravelMemory web server
+  hosts: web
+  become: true
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Install required system packages
+      yum:
+        name:
+          - git
+          - curl
+          - nginx
+          - gcc-c++
+          - make
+        state: present
+        update_cache: yes
+
+    - name: Add NodeSource repository for Node.js 18.x
+      command: curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+      args:
+        creates: /etc/yum.repos.d/nodesource-el.repo
+
+    - name: Install Node.js
+      yum:
+        name: nodejs
+        state: present
+
+    - name: Ensure nginx is enabled and started
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Clone TravelMemory repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        force: yes
+        update: yes
+
+    - name: Create backend environment file
+      copy:
+        dest: "{{ app_dir }}/backend/.env"
+        content: |
+          MONGO_URI=mongodb://{{ mongo_app_user }}:{{ mongo_app_password }}@{{ hostvars['db'].ansible_host }}:{{ mongodb_port }}/{{ mongo_db_name }}?authSource=admin
+          PORT={{ backend_port }}
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+
+    - name: Install backend dependencies
+      npm:
+        path: "{{ app_dir }}/backend"
+        production: no
+
+    - name: Install frontend dependencies
+      npm:
+        path: "{{ app_dir }}/frontend"
+        production: no
+
+    - name: Create frontend environment file
+      copy:
+        dest: "{{ app_dir }}/frontend/.env"
+        content: |
+          REACT_APP_BACKEND_URL=http://{{ ansible_host }}
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+
+    - name: Build frontend static assets
+      command: npm run build
+      args:
+        chdir: "{{ app_dir }}/frontend"
+
+    - name: Deploy nginx configuration for TravelMemory
+      copy:
+        dest: /etc/nginx/conf.d/travelmemory.conf
+        content: |
+          server {
+              listen 80;
+              server_name _;
+
+              root {{ app_dir }}/frontend/build;
+              index index.html;
+
+              location / {
+                  try_files $uri /index.html;
+              }
+
+              location /trip {
+                  proxy_pass http://127.0.0.1:{{ backend_port }};
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+              }
+
+              location /hello {
+                  proxy_pass http://127.0.0.1:{{ backend_port }};
+                  proxy_set_header Host $host;
+              }
+          }
+        mode: '0644'
+
+    - name: Reload nginx to apply config
+      service:
+        name: nginx
+        state: reloaded
+
+    - name: Create systemd service file for TravelMemory backend
+      copy:
+        dest: /etc/systemd/system/travelmemory-backend.service
+        content: |
+          [Unit]
+          Description=TravelMemory Express Backend
+          After=network.target mongod.service
+
+          [Service]
+          Type=simple
+          User={{ app_user }}
+          WorkingDirectory={{ app_dir }}/backend
+          EnvironmentFile={{ app_dir }}/backend/.env
+          ExecStart=/usr/bin/node index.js
+          Restart=on-failure
+          RestartSec=5s
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Ensure TravelMemory backend service is enabled and started
+      service:
+        name: travelmemory-backend
+        state: started
+        enabled: yes
