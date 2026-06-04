@@ -326,12 +326,12 @@ cat /home/ubuntu/travelmemory/backend/.env
 
 **Expected contents:**
 ```
-MONGO_URI=mongodb+srv://senharishms108:BtnHurryPot%4026@atlas-cluster-harish-27-11-2025.mongodb.net/travelmemory?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://senharishms108:BhmebRock%21@atlas-cluster-harish-27-11-2025.mongodb.net/travelmemory?retryWrites=true&w=majority
 PORT=3001
 NODE_ENV=production
 ```
 
-**⚠️ Important:** Password special chars (especially `@`) must be URL-encoded as `%40`. Replace `atlas-cluster-harish-27-11-2025.mongodb.net` with the actual Atlas cluster host if needed.
+**⚠️ Important:** Password special chars (especially `!`) must be URL-encoded as `%21`, and `@` as `%40`. Replace `atlas-cluster-harish-27-11-2025.mongodb.net` with the actual Atlas cluster host if needed.
 
 ### Step 4.6: Start/Restart Services
 
