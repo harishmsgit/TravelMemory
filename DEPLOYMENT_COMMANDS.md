@@ -100,7 +100,7 @@ terraform init
 terraform plan -out plan.tfplan \
   -var "aws_region=ap-south-1" \
   -var "key_name=travelMemory-KP" \
-  -var "admin_cidr=13.127.59.251/32"
+  -var "admin_cidr=13.23.1833.20/32"
 ```
 
 **Expected Output:**
@@ -114,7 +114,7 @@ terraform plan -out plan.tfplan \
 terraform apply \
   -var "aws_region=ap-south-1" \
   -var "key_name=travelMemory-KP" \
-  -var "admin_cidr=13.127.59.251/32"
+  -var "admin_cidr=13.23.1833.20/32"
 
 # OR apply existing plan
 terraform apply "plan.tfplan"
@@ -198,10 +198,10 @@ ansible_python_interpreter=/usr/bin/python3
 **Example:**
 ```ini
 [webservers]
-web1 ansible_host=13.233.16.231 ansible_user=ubuntu ansible_private_key_file=~/travelMemory-KP.pem
+web1 ansible_host=52.66.213.14 ansible_user=ubuntu ansible_private_key_file=~/travelMemory-KP.pem
 
 [databases]
-db1 ansible_host=10.0.2.100 ansible_user=ubuntu ansible_private_key_file=~/travelMemory-KP.pem
+db1 ansible_host=10.0.2.253 ansible_user=ubuntu ansible_private_key_file=~/travelMemory-KP.pem
 
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3
