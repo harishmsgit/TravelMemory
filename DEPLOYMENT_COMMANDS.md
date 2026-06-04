@@ -198,7 +198,7 @@ ansible_python_interpreter=/usr/bin/python3
 **Example:**
 ```ini
 [webservers]
-web1 ansible_host=13.127.59.251 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
+web1 ansible_host=13.233.16.231 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
 
 [databases]
 db1 ansible_host=10.0.2.100 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
@@ -421,7 +421,7 @@ WEB_PUBLIC_IP=$(terraform output -raw web_public_ip)
 
 # Open in browser
 http://$WEB_PUBLIC_IP
-# Example: http://13.127.59.251
+# Example: http://13.233.16.231
 ```
 
 ### Step 6.2: Test Core Functionality
@@ -436,10 +436,10 @@ http://$WEB_PUBLIC_IP
 **From terminal (API tests):**
 ```bash
 # Get all trips (backend API)
-curl http://13.127.59.251:3001/trips
+curl http://13.233.16.231:3001/trips
 
 # Create a test trip
-curl -X POST http://13.127.59.251:3001/trips \
+curl -X POST http://13.233.16.231:3001/trips \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Test Trip",
