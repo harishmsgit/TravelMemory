@@ -237,7 +237,7 @@ cd ansible
 ansible-playbook web.yml -i inventory.ini -v
 
 # Configure database server
-ansible-playbook db.yml -i inventory.ini -v
+niansible-playbook db.yml -i inventory.i -v
 
 # Or run all in one
 ansible-playbook site.yml -i inventory.ini -v
@@ -306,8 +306,15 @@ ls -la build/
 
 **If permission errors (`EACCES`):**
 ```bash
+# Fix ownership, remove existing node modules, reinstall, and build
 sudo chown -R ubuntu:ubuntu /home/ubuntu/travelmemory
-rm -rf build
+cd /home/ubuntu/travelmemory/frontend
+# Remove old installs and lockfile
+rm -rf node_modules package-lock.json
+# Verify npm cache and install as the ubuntu user
+npm cache verify
+npm install
+# Build production bundle
 npm run build
 ```
 
@@ -319,12 +326,12 @@ cat /home/ubuntu/travelmemory/backend/.env
 
 **Expected contents:**
 ```
-MONGO_URI=mongodb+srv://username:password%40@cluster.mongodb.net/travelmemory?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://senharishms108:BtnHurryPot%4026@atlas-cluster-harish-27-11-2025.mongodb.net/travelmemory?retryWrites=true&w=majority
 PORT=3001
 NODE_ENV=production
 ```
 
-**⚠️ Important:** Password special chars (especially `@`) must be URL-encoded as `%40`.
+**⚠️ Important:** Password special chars (especially `@`) must be URL-encoded as `%40`. Replace `atlas-cluster-harish-27-11-2025.mongodb.net` with the actual Atlas cluster host if needed.
 
 ### Step 4.6: Start/Restart Services
 
@@ -360,7 +367,16 @@ sudo ss -tlnp | grep nginx
 ### Step 5.1: MongoDB Atlas Connectivity Check
 
 ```bash
-# From web server, test backend health
+# From web server, test MongoDB Atlas connectivity directly
+cd /home/ubuntu/travelmemory/backend
+npm run check-mongo
+
+# Expected output:
+# MongoDB connection OK
+```
+
+```bash
+# Then verify backend health
 curl http://localhost:3001/hello
 
 # Expected output:
