@@ -367,13 +367,22 @@ sudo ss -tlnp | grep nginx
 ### Step 5.1: MongoDB Atlas Connectivity Check
 
 ```bash
-# From web server, test MongoDB Atlas connectivity directly
+# From web server, update backend code and dependencies
 cd /home/ubuntu/travelmemory/backend
+git pull origin main
+npm install
+
+# Verify the current MongoDB URI used by the backend
+grep '^MONGO_URI=' /home/ubuntu/travelmemory/backend/.env
+
+# Then test MongoDB Atlas connectivity directly
 npm run check-mongo
 
 # Expected output:
 # MongoDB connection OK
 ```
+
+If `grep` shows an unencoded `@` inside the password, fix it in `/home/ubuntu/travelmemory/backend/.env` by replacing `@` with `%40`.
 
 ```bash
 # Then verify backend health
@@ -382,6 +391,8 @@ curl http://localhost:3001/hello
 # Expected output:
 # Hello from TravelMemory Backend
 ```
+
+If authentication still fails, reset the Atlas user's password in the Atlas Console for user `senharishms108` and confirm the password is exactly `BtnHurryPot@26`.
 
 ### Step 5.2: Check Backend Logs
 
