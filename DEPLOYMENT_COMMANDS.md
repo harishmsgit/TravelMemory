@@ -1,28 +1,43 @@
-# Deployment & Verification Commands
+# TravelMemory Deployment & Verification Commands
 
-This file collects the commands used during provisioning and the checks to verify the TravelMemory app.
+Complete sequential guide for provisioning infrastructure, configuring servers, and verifying the TravelMemory application.
 
-## 0) Install Terraform and Configure AWS Credentials (if not already installed)
-Run on your machine or EC2 instance before running Terraform commands:
+---
 
-### Step 0a: Install Terraform
+## PHASE 1: Prerequisites & Environment Setup
 
-**Option 1: Install via HashiCorp Repository (Recommended)**
+### Step 1.1: Install Terraform (Linux/Mac/Windows)
+
+**On Ubuntu/Linux:**
 ```bash
 cd ~
 wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt update
-sudo apt install terraform
+sudo apt install terraform -y
 terraform --version
 ```
 
-### Step 0b: Configure AWS Credentials on EC2
-If running Terraform from an **EC2 instance** (like your Jenkins-server), you need to configure AWS credentials.
+**On Windows:**
+- Download from: https://www.terraform.io/downloads
+- Or use package manager: `choco install terraform` (if Chocolatey is installed)
 
-**Option A: Install AWS CLI and configure manually**
+### Step 1.2: Install AWS CLI
+
+**On Ubuntu/Linux:**
 ```bash
-sudo apt install -y awscli
+sudo apt install awscli -y
+aws --version
+```
+
+**On Windows:**
+- Download from: https://aws.amazon.com/cli/
+- Or use: `choco install awscli`
+
+### Step 1.3: Configure AWS Credentials
+
+**Option A: Interactive Setup (Recommended)**
+```bash
 aws configure
 # Prompted to enter:
 # AWS Access Key ID: [your-access-key]
@@ -31,191 +46,524 @@ aws configure
 # Default output format: json
 ```
 
-**Option B: Set credentials as environment variables (quick method)**
+**Option B: Environment Variables (Quick)**
 ```bash
 export AWS_ACCESS_KEY_ID="your-access-key-id"
 export AWS_SECRET_ACCESS_KEY="your-secret-access-key"
 export AWS_DEFAULT_REGION="ap-south-1"
-# Then run Terraform commands
+```
+
+**Verify Setup:**
+```bash
+aws sts get-caller-identity
+# Should return your AWS Account ID and User ARN
 ```
 
 **How to get AWS credentials:**
-1. Go to AWS Console → IAM → Users → Your user
+1. Go to AWS Console → IAM → Users → Select your user
 2. Click **Security credentials** tab
 3. Under **Access keys**, click **Create access key** (if none exist)
 4. Copy the **Access Key ID** and **Secret Access Key**
-5. Use them in `aws configure` or as environment variables above
 
-**Verify credentials are set:**
-```bash
-aws sts get-caller-identity
-```
-You should see your AWS account ID and user info.
+---
 
-## 1) Local repo (Windows workstation)
+## PHASE 2: Terraform Infrastructure Provisioning
 
-### Step 1a: Get your variable values
-Before running Terraform, you need two values:
+### Step 2.1: Prepare Terraform Variables
 
-1. **`YOUR_KEYPAIR`** - Your AWS EC2 Key Pair name
+Before running Terraform, gather the following:
+
+1. **AWS Region** (should match where your key pair exists)
+   - Default: `ap-south-1`
+   - Ensure key pair exists in this region
+
+2. **EC2 Key Pair Name** (without `.pem` extension)
    - Go to AWS Console → EC2 → Key Pairs
-   - Check the name of an existing key pair you have (e.g., `my-keypair`, `aws-key`)
-   - Or create a new one and note its name
+   - Note the name of an existing key pair (e.g., `capstone-project-KP`)
+   - Ensure you have the `.pem` file locally for SSH access later
 
-2. **`YOUR_IP`** - Your local machine's public IP (where you're running Terraform)
-   - On Windows PowerShell: `(Invoke-WebRequest -Uri "https://checkip.amazonaws.com").Content`
-   - Or visit: https://checkip.amazonaws.com
-   - You'll get something like `203.0.113.45` → use `203.0.113.45/32`
+3. **Your Public IP (CIDR format)**
+   - Windows PowerShell: `(Invoke-WebRequest -Uri "https://checkip.amazonaws.com").Content`
+   - Linux/Mac: `curl https://checkip.amazonaws.com`
+   - Example output: `203.0.113.45` → use as `203.0.113.45/32`
 
-### Step 1b: Initialize Terraform and plan/apply (in `Terraform/`)
+### Step 2.2: Initialize & Plan Terraform
+
+**From the `Terraform/` directory:**
 ```bash
 cd Terraform
+
+# Initialize Terraform (download providers)
 terraform init
+
+# Generate plan with variables
 terraform plan -out plan.tfplan \
   -var "aws_region=ap-south-1" \
   -var "key_name=capstone-project-KP" \
   -var "admin_cidr=13.127.59.251/32"
-# Example:
-# terraform plan -out plan.tfplan -var "aws_region=ap-south-1" -var "key_name=my-ec2-key" -var "admin_cidr=203.0.113.45/32"
+```
+
+**Expected Output:**
+- Plan shows 2 EC2 instances, VPC, subnets, security groups
+- No errors about missing key pairs
+
+### Step 2.3: Apply Terraform Configuration
+
+```bash
+# Fresh apply (recommended if plan is stale)
+terraform apply \
+  -var "aws_region=ap-south-1" \
+  -var "key_name=capstone-project-KP" \
+  -var "admin_cidr=13.127.59.251/32"
+
+# OR apply existing plan
 terraform apply "plan.tfplan"
 ```
 
-Note: `key_name` must match the AWS EC2 key pair name in the selected region. Do not include the local `.pem` file extension here; that file is only used locally for SSH access.
+**Type `yes` when prompted to confirm.**
 
-**⚠️ TROUBLESHOOTING: "InvalidKeyPair.NotFound" error**
+### Step 2.4: Capture Terraform Outputs
 
-If you get: `Error: creating EC2 Instance: InvalidKeyPair.NotFound: The key pair 'capstone-project-KP.pem' does not exist`
+After apply succeeds, capture the EC2 public/private IPs:
 
-**This means the key pair you specified doesn't exist in your AWS account.**
-
-**Solution:**
-1. **Find existing key pairs** in AWS Console → EC2 → Key Pairs
-   - Note the name of an existing pair (without the `.pem` extension)
-   
-2. **OR create a new key pair:**
-   ```bash
-   # On your local machine (Windows PowerShell or terminal):
-   aws ec2 create-key-pair --key-name my-new-key --region ap-south-1 --query 'KeyMaterial' --output text > my-new-key.pem
-   chmod 400 my-new-key.pem  # (on Linux/Mac, not needed on Windows)
-   ```
-
-3. **Then destroy and re-apply with the correct key pair name:**
-   ```bash
-   # On EC2 instance:
-   cd ~/TravelMemory/Terraform
-   terraform destroy  # (type 'yes' when prompted)
-   
-   # Now apply with correct key pair:
-   terraform plan -out plan.tfplan -var "key_name=my-new-key" -var "admin_cidr=13.127.59.251/32"
-   terraform apply "plan.tfplan"
-   ```
-
-- Note outputs:
 ```bash
-terraform output web_public_ip
-terraform output db_private_ip
+# Get web server public IP (needed for Ansible & app access)
+WEB_PUBLIC_IP=$(terraform output -raw web_public_ip)
+echo $WEB_PUBLIC_IP
+
+# Get database server private IP (needed for Ansible inventory)
+DB_PRIVATE_IP=$(terraform output -raw db_private_ip)
+echo $DB_PRIVATE_IP
+
+# Save for next phase
+terraform output -json > outputs.json
+cat outputs.json
 ```
 
-## 2) Ansible control machine (your local dev or the web server itself)
-- Ensure `ansible` is installed (on Ubuntu):
+### Step 2.5: Troubleshooting Terraform
+
+**If "InvalidKeyPair.NotFound" error:**
+```bash
+# Verify key pair exists in the correct region
+aws ec2 describe-key-pairs --key-names capstone-project-KP --region ap-south-1
+
+# If not found, create it:
+aws ec2 create-key-pair --key-name capstone-project-KP --region ap-south-1 \
+  --query 'KeyMaterial' --output text > capstone-project-KP.pem
+chmod 400 capstone-project-KP.pem
+```
+
+**If "Saved plan is stale" error:**
+```bash
+# Delete stale plan and recreate
+rm plan.tfplan
+terraform plan -out plan.tfplan \
+  -var "aws_region=ap-south-1" \
+  -var "key_name=capstone-project-KP" \
+  -var "admin_cidr=13.127.59.251/32"
+terraform apply "plan.tfplan"
+```
+
+---
+
+## PHASE 3: Ansible Configuration
+
+### Step 3.1: Install Ansible
+
+**On Ubuntu/Linux:**
 ```bash
 sudo apt update
 sudo apt install ansible-core -y
+ansible --version
 ```
-- Update `ansible/inventory.ini` with the web public IP and key file path (example already prepared):
-- Run the full playbook (when bastion/proxy is available):
+
+**On Windows:**
+- Use WSL (Windows Subsystem for Linux), then run Linux commands above
+- Or use: `pip install ansible`
+
+### Step 3.2: Update Ansible Inventory
+
+**Edit `ansible/inventory.ini`:**
+```ini
+[webservers]
+web1 ansible_host=<WEB_PUBLIC_IP> ansible_user=ubuntu ansible_private_key_file=/path/to/capstone-project-KP.pem
+
+[databases]
+db1 ansible_host=<DB_PRIVATE_IP> ansible_user=ubuntu ansible_private_key_file=/path/to/capstone-project-KP.pem
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+```
+
+**Example:**
+```ini
+[webservers]
+web1 ansible_host=13.234.111.115 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
+
+[databases]
+db1 ansible_host=10.0.2.100 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+```
+
+### Step 3.3: Test Ansible Connectivity
+
+```bash
+# From repo root
+cd ansible
+
+# Test connection to web server
+ansible web1 -i inventory.ini -m ping
+
+# Test connection to db server
+ansible db1 -i inventory.ini -m ping
+```
+
+**Expected Output:**
+```
+web1 | SUCCESS => {
+    "changed": false,
+    "ping": "pong"
+}
+```
+
+### Step 3.4: Run Ansible Playbooks
+
 ```bash
 cd ansible
-ansible-playbook site.yml
-```
-- Or to run only web configuration locally on the web server:
-```bash
-cd ansible
-ansible-playbook web.yml -i "localhost," -c local
+
+# Configure web server
+ansible-playbook web.yml -i inventory.ini -v
+
+# Configure database server
+ansible-playbook db.yml -i inventory.ini -v
+
+# Or run all in one
+ansible-playbook site.yml -i inventory.ini -v
 ```
 
-## 3) Commands executed on the web server (EC2 Ubuntu) — common checks & fixes
-- Install missing packages (if needed):
+**Expected Actions:**
+- Install packages (git, nodejs, npm, nginx, etc.)
+- Clone TravelMemory repo to `/home/ubuntu/travelmemory`
+- Create systemd services for backend
+- Configure nginx as reverse proxy
+
+---
+
+## PHASE 4: Web Server Verification & Setup
+
+### Step 4.1: SSH into Web Server
+
 ```bash
-sudo apt update
-sudo apt install -y git curl nginx nodejs npm
-```
-- Build frontend:
-```bash
-cd /home/ubuntu/travelmemory/frontend
-npm install
-npm run build
-```
-- Fix build permissions if you see `EACCES`:
-```bash
-sudo chown -R ubuntu:ubuntu /home/ubuntu/travelmemory
-rm -rf /home/ubuntu/travelmemory/frontend/build
-npm run build
-```
-- Check nginx is listening on port 80:
-```bash
-sudo ss -tlnp | grep nginx
-```
-- Check backend `.env` (MongoDB Atlas URI must be URL-encoded for special chars):
-```bash
-cat /home/ubuntu/travelmemory/backend/.env
-# Example value
-# MONGO_URI=mongodb+srv://senharishms108:BtnHurryPot%4026@atlas-cluster-harish-27.7gyzfqt.mongodb.net/travelmemory?retryWrites=true&w=majority
-```
-- Restart services and check status:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart travelmemory-backend
-sudo systemctl restart nginx
-sudo systemctl status travelmemory-backend
-sudo systemctl status nginx
-```
-- Tail backend logs:
-```bash
-sudo journalctl -u travelmemory-backend -f
-```
-- Tail nginx logs:
-```bash
-sudo tail -n 200 /var/log/nginx/error.log
-sudo tail -n 200 /var/log/nginx/access.log
-```
-- Quick backend health check:
-```bash
-curl http://localhost:3001/hello
+# Get the web server public IP from Terraform
+WEB_PUBLIC_IP=$(terraform output -raw web_public_ip)
+
+# SSH into the web server
+ssh -i capstone-project-KP.pem ubuntu@$WEB_PUBLIC_IP
 ```
 
-## 4) MongoDB Atlas checks
-- If `AtlasError` or handshake/auth fails:
-  - URL-encode `@` in password as `%40`.
-  - Ensure Atlas **Network Access** allows the web server IP (add `13.234.111.115/32` or appropriate public IP).
-  - Verify username/password in Atlas **Database Access** and the database name.
+### Step 4.2: Verify Installed Packages
 
-## 5) Git commands used to record changes
 ```bash
-# Stage and commit
-git add .
-git commit -m "Your message"
-git push
-```
+# Check Git
+git --version
 
-## 6) Useful troubleshooting commands
-```bash
-# Check file ownership
-ls -la /home/ubuntu/travelmemory
-
-# Check Node version
+# Check Node
 node -v
 
 # Check npm
 npm -v
+
+# Check Nginx
+sudo nginx -v
+
+# Check backend systemd service exists
+sudo systemctl status travelmemory-backend
 ```
 
-## 7) How to access the app
-- Open browser and go to:
+### Step 4.3: Verify Repository Cloned
+
+```bash
+ls -la /home/ubuntu/travelmemory/
+# Should show: backend/, frontend/, ansible/, Terraform/, etc.
 ```
-http://<WEB_PUBLIC_IP>
-# example: http://13.234.111.115
+
+### Step 4.4: Build Frontend
+
+```bash
+cd /home/ubuntu/travelmemory/frontend
+
+# Install dependencies
+npm install
+
+# Build production bundle
+npm run build
+
+# Verify build output
+ls -la build/
+```
+
+**If permission errors (`EACCES`):**
+```bash
+sudo chown -R ubuntu:ubuntu /home/ubuntu/travelmemory
+rm -rf build
+npm run build
+```
+
+### Step 4.5: Check Backend `.env` File
+
+```bash
+cat /home/ubuntu/travelmemory/backend/.env
+```
+
+**Expected contents:**
+```
+MONGO_URI=mongodb+srv://username:password%40@cluster.mongodb.net/travelmemory?retryWrites=true&w=majority
+PORT=3001
+NODE_ENV=production
+```
+
+**⚠️ Important:** Password special chars (especially `@`) must be URL-encoded as `%40`.
+
+### Step 4.6: Start/Restart Services
+
+```bash
+# Reload systemd daemon
+sudo systemctl daemon-reload
+
+# Start backend service
+sudo systemctl start travelmemory-backend
+
+# Restart Nginx
+sudo systemctl restart nginx
+
+# Check status
+sudo systemctl status travelmemory-backend
+sudo systemctl status nginx
+```
+
+### Step 4.7: Verify Nginx Configuration
+
+```bash
+# Check Nginx is listening on port 80
+sudo ss -tlnp | grep nginx
+
+# Expected output:
+# LISTEN    0    128    0.0.0.0:80    0.0.0.0:*    users:(("nginx",pid=1234,fd=6))
 ```
 
 ---
-If you want, I can also add a short script to automate the most common verification steps on the server.
+
+## PHASE 5: Database & Integration Verification
+
+### Step 5.1: MongoDB Atlas Connectivity Check
+
+```bash
+# From web server, test backend health
+curl http://localhost:3001/hello
+
+# Expected output:
+# Hello from TravelMemory Backend
+```
+
+### Step 5.2: Check Backend Logs
+
+```bash
+# Tail backend service logs
+sudo journalctl -u travelmemory-backend -f
+
+# Or check last 50 lines
+sudo journalctl -u travelmemory-backend -n 50
+```
+
+**Look for:**
+- ✅ "MongoDB connected successfully"
+- ❌ Connection timeouts or auth failures
+
+### Step 5.3: Check Nginx Logs
+
+```bash
+# Error log
+sudo tail -n 50 /var/log/nginx/error.log
+
+# Access log
+sudo tail -n 50 /var/log/nginx/access.log
+```
+
+### Step 5.4: MongoDB Atlas Network Access
+
+If backend cannot connect to MongoDB:
+
+1. Get web server public IP:
+   ```bash
+   curl https://checkip.amazonaws.com
+   ```
+
+2. Add to MongoDB Atlas **Network Access**:
+   - Go to Atlas Console → Network Access
+   - Click **Add IP Address**
+   - Add your web server IP (e.g., `13.234.111.115/32`)
+
+3. Verify in MongoDB **Database Access**:
+   - Confirm username/password are correct
+   - Ensure database user has access to `travelmemory` database
+
+---
+
+## PHASE 6: Application Access & End-to-End Testing
+
+### Step 6.1: Access the Application
+
+```bash
+# Get web server public IP
+WEB_PUBLIC_IP=$(terraform output -raw web_public_ip)
+
+# Open in browser
+http://$WEB_PUBLIC_IP
+# Example: http://13.234.111.115
+```
+
+### Step 6.2: Test Core Functionality
+
+**From browser:**
+1. Load home page
+2. Navigate to "Add Experience"
+3. Add a test experience
+4. Verify it appears in the list
+5. Click on an experience to view details
+
+**From terminal (API tests):**
+```bash
+# Get all trips (backend API)
+curl http://<WEB_PUBLIC_IP>:3001/trips
+
+# Create a test trip
+curl -X POST http://<WEB_PUBLIC_IP>:3001/trips \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Test Trip",
+    "location": "Test City",
+    "date": "2026-06-04",
+    "description": "Test experience"
+  }'
+```
+
+### Step 6.3: File Permission Checks
+
+```bash
+# Verify ownership
+ls -la /home/ubuntu/travelmemory
+
+# Should show:
+# drwxr-xr-x ubuntu ubuntu backend
+# drwxr-xr-x ubuntu ubuntu frontend
+# etc.
+```
+
+---
+
+## PHASE 7: Troubleshooting & Common Issues
+
+### Service not starting?
+```bash
+# Check service status
+sudo systemctl status travelmemory-backend
+
+# Restart service
+sudo systemctl restart travelmemory-backend
+
+# Reload daemon if .service file changed
+sudo systemctl daemon-reload
+```
+
+### Frontend build fails?
+```bash
+# Clear node_modules and cache
+cd /home/ubuntu/travelmemory/frontend
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+npm run build
+```
+
+### Nginx returning 502 Bad Gateway?
+```bash
+# Check backend is running
+sudo systemctl status travelmemory-backend
+
+# Check backend listening on port 3001
+sudo ss -tlnp | grep 3001
+
+# Restart both services
+sudo systemctl restart travelmemory-backend
+sudo systemctl restart nginx
+```
+
+### MongoDB connection timeout?
+```bash
+# Add web server IP to MongoDB Atlas Network Access (see Phase 5.4)
+# Verify .env has correct MONGO_URI
+cat /home/ubuntu/travelmemory/backend/.env
+
+# Test connection directly
+curl -v http://localhost:3001/hello
+```
+
+---
+
+## Git Commands (if making changes)
+
+```bash
+# Stage all changes
+git add .
+
+# Commit with message
+git commit -m "Your descriptive message"
+
+# Push to remote
+git push
+```
+
+---
+
+## Quick Reference: Key IPs & Ports
+
+| Service | Host | Port | URL |
+|---------|------|------|-----|
+| Frontend (Nginx) | Web Server | 80 | `http://<WEB_PUBLIC_IP>` |
+| Backend API | Web Server | 3001 | `http://<WEB_PUBLIC_IP>:3001` |
+| MongoDB | Atlas (Cloud) | 27017 | Connection string in `.env` |
+| SSH | Web/DB Server | 22 | `ssh -i key.pem ubuntu@<IP>` |
+
+---
+
+## Complete Workflow Summary
+
+1. **Install tools** (Terraform, AWS CLI, Ansible)
+2. **Configure AWS credentials** (aws configure)
+3. **Run Terraform** (init → plan → apply)
+4. **Capture Terraform outputs** (web_public_ip, db_private_ip)
+5. **Update Ansible inventory** (with IPs from step 4)
+6. **Run Ansible playbooks** (site.yml)
+7. **SSH to web server** (verify packages, build frontend)
+8. **Check services** (backend running, nginx listening)
+9. **Verify database** (MongoDB Atlas connectivity)
+10. **Test application** (browser & API)
+
+---
+
+## Support & Logging
+
+For detailed logs and debugging:
+
+```bash
+# Terraform logs
+TF_LOG=DEBUG terraform plan
+
+# Ansible verbose
+ansible-playbook site.yml -vvv
+
+# Systemd journal
+sudo journalctl -u travelmemory-backend -n 100 --no-pager
+```
