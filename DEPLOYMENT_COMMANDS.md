@@ -79,7 +79,7 @@ Before running Terraform, gather the following:
 
 2. **EC2 Key Pair Name** (without `.pem` extension)
    - Go to AWS Console → EC2 → Key Pairs
-   - Note the name of an existing key pair (e.g., `capstone-project-KP`)
+   - Note the name of an existing key pair (e.g., `travelMemory-KP`)
    - Ensure you have the `.pem` file locally for SSH access later
 
 3. **Your Public IP (CIDR format)**
@@ -99,7 +99,7 @@ terraform init
 # Generate plan with variables
 terraform plan -out plan.tfplan \
   -var "aws_region=ap-south-1" \
-  -var "key_name=capstone-project-KP" \
+  -var "key_name=travelMemory-KP" \
   -var "admin_cidr=13.127.59.251/32"
 ```
 
@@ -113,7 +113,7 @@ terraform plan -out plan.tfplan \
 # Fresh apply (recommended if plan is stale)
 terraform apply \
   -var "aws_region=ap-south-1" \
-  -var "key_name=capstone-project-KP" \
+  -var "key_name=travelMemory-KP" \
   -var "admin_cidr=13.127.59.251/32"
 
 # OR apply existing plan
@@ -145,12 +145,12 @@ cat outputs.json
 **If "InvalidKeyPair.NotFound" error:**
 ```bash
 # Verify key pair exists in the correct region
-aws ec2 describe-key-pairs --key-names capstone-project-KP --region ap-south-1
+aws ec2 describe-key-pairs --key-names travelMemory-KP --region ap-south-1
 
 # If not found, create it:
-aws ec2 create-key-pair --key-name capstone-project-KP --region ap-south-1 \
-  --query 'KeyMaterial' --output text > capstone-project-KP.pem
-chmod 400 capstone-project-KP.pem
+aws ec2 create-key-pair --key-name travelMemory-KP --region ap-south-1 \
+  --query 'KeyMaterial' --output text > travelMemory-KP.pem
+chmod 400 travelMemory-KP.pem
 ```
 
 **If "Saved plan is stale" error:**
@@ -159,7 +159,7 @@ chmod 400 capstone-project-KP.pem
 rm plan.tfplan
 terraform plan -out plan.tfplan \
   -var "aws_region=ap-south-1" \
-  -var "key_name=capstone-project-KP" \
+  -var "key_name=travelMemory-KP" \
   -var "admin_cidr=13.127.59.251/32"
 terraform apply "plan.tfplan"
 ```
@@ -186,10 +186,10 @@ ansible --version
 **Edit `ansible/inventory.ini`:**
 ```ini
 [webservers]
-web1 ansible_host=<WEB_PUBLIC_IP> ansible_user=ubuntu ansible_private_key_file=/path/to/capstone-project-KP.pem
+web1 ansible_host=<WEB_PUBLIC_IP> ansible_user=ubuntu ansible_private_key_file=/path/to/travelMemory-KP.pem
 
 [databases]
-db1 ansible_host=<DB_PRIVATE_IP> ansible_user=ubuntu ansible_private_key_file=/path/to/capstone-project-KP.pem
+db1 ansible_host=<DB_PRIVATE_IP> ansible_user=ubuntu ansible_private_key_file=/path/to/travelMemory-KP.pem
 
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3
@@ -198,10 +198,10 @@ ansible_python_interpreter=/usr/bin/python3
 **Example:**
 ```ini
 [webservers]
-web1 ansible_host=13.233.16.231 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
+web1 ansible_host=13.233.16.231 ansible_user=ubuntu ansible_private_key_file=~/travelMemory-KP.pem
 
 [databases]
-db1 ansible_host=10.0.2.100 ansible_user=ubuntu ansible_private_key_file=~/capstone-project-KP.pem
+db1 ansible_host=10.0.2.100 ansible_user=ubuntu ansible_private_key_file=~/travelMemory-KP.pem
 
 [all:vars]
 ansible_python_interpreter=/usr/bin/python3
@@ -260,7 +260,7 @@ ansible-playbook site.yml -i inventory.ini -v
 WEB_PUBLIC_IP=$(terraform output -raw web_public_ip)
 
 # SSH into the web server
-ssh -i capstone-project-KP.pem ubuntu@$WEB_PUBLIC_IP
+ssh -i travelMemory-KP.pem ubuntu@$WEB_PUBLIC_IP
 ```
 
 ### Step 4.2: Verify Installed Packages

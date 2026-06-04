@@ -24,7 +24,7 @@ cd Terraform
 terraform init
 terraform plan -out plan.tfplan \
   -var "aws_region=ap-south-1" \
-  -var "key_name=capstone-project-KP" \
+  -var "key_name=travelMemory-KP" \
   -var "admin_cidr=13.127.59.251/32"
 terraform apply "plan.tfplan"
 ```
