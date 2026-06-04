@@ -392,7 +392,7 @@ curl http://localhost:3001/hello
 # Hello from TravelMemory Backend
 ```
 
-If authentication still fails, reset the Atlas user's password in the Atlas Console for user `senharishms108` and confirm the password is exactly `BtnHurryPot@26`.
+If authentication still fails, reset the Atlas user's password in the Atlas Console for user `senharishms108` and confirm the password is exactly `BhmebRock!`.
 
 ### Step 5.2: Check Backend Logs
 
