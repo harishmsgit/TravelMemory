@@ -17,11 +17,31 @@ export default function AddExperience() {
             featured: false,
             shortDescription: ""
     })
-    const submitForm = () => {
+    const submitForm = async () => {
         setLoading(true);
-        console.log(formdata)
-        axios.post(`${baseUrl}/trip`, formdata)
-        setLoading(false)
+        try {
+            console.log(formdata)
+            await axios.post(`${baseUrl}/trip`, formdata)
+            alert('Trip submitted successfully')
+            setFormdata({
+                tripName: "",
+                startDateOfJourney: "",
+                endDateOfJourney: "",
+                nameOfHotels: "",
+                placesVisited: "",
+                totalCost: 0,
+                experience: "",
+                image: "",
+                tripType: "",
+                featured: false,
+                shortDescription: ""
+            })
+        } catch (error) {
+            console.error(error)
+            alert('Submit failed. Check console for details.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     if(loading==true){
@@ -189,7 +209,7 @@ export default function AddExperience() {
             ></textarea>
           </div>
           <div class="mb-3" style={{ textAlign: "center"}}>
-            <button type="submit" class="btn btn-primary" onClick={submitForm}>Submit</button>
+            <button type="button" class="btn btn-primary" onClick={submitForm}>Submit</button>
           </div>
         </div>
       );
