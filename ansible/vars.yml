@@ -3,5 +3,5 @@ app_user: "ubuntu"
 app_dir: "/home/ubuntu/travelmemory"
 backend_port: 3001
 frontend_port: 80
-# MongoDB Atlas Configuration
-mongo_uri: "mongodb+srv://senharishms108:BhmebRock%21@atlas-cluster-harish-27.7gyzfqt.mongodb.net/travelmemory?retryWrites=true&w=majority"
+# MongoDB EC2 host in the same VPC/private subnet
+mongo_uri: "mongodb://172.31.43.42:27017/travelmemory"
