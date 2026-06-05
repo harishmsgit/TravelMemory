@@ -259,8 +259,30 @@ ansible-playbook site.yml -i inventory.ini -v
 # Get the web server public IP from Terraform
 WEB_PUBLIC_IP=$(terraform output -raw web_public_ip)
 
-# SSH into the web server
-ssh -i travelMemory-KP.pem ubuntu@$WEB_PUBLIC_IP
+# SSH into the web server (bastion)
+ssh -i ~/.ssh/travelMemory-KP.pem ubuntu@$WEB_PUBLIC_IP
+```
+
+> If the private DB host is not directly reachable from your laptop, use the web server as a bastion.
+
+#### SSH to the private DB host via the bastion
+
+From your laptop:
+```bash
+ssh -i ~/.ssh/travelMemory-KP.pem ubuntu@$WEB_PUBLIC_IP
+```
+
+On the bastion/web host:
+```bash
+# If the private key is not already on the bastion
+scp -i ~/.ssh/travelMemory-KP.pem ~/.ssh/travelMemory-KP.pem ubuntu@$WEB_PUBLIC_IP:/home/ubuntu/
+chmod 400 /home/ubuntu/travelMemory-KP.pem
+ssh -i /home/ubuntu/travelMemory-KP.pem ubuntu@172.31.43.42
+```
+
+Or from your laptop in one step using ProxyJump:
+```bash
+ssh -o IdentitiesOnly=yes -i ~/.ssh/travelMemory-KP.pem -J ubuntu@$WEB_PUBLIC_IP ubuntu@172.31.43.42
 ```
 
 ### Step 4.2: Verify Installed Packages
@@ -331,7 +353,7 @@ PORT=3001
 NODE_ENV=production
 ```
 
-**⚠️ Important:** Password special chars (especially `!`) must be URL-encoded as `%21`, and `@` as `%40`. Replace `atlas-cluster-harish-27-11-2025.mongodb.net` with the actual Atlas cluster host if needed.
+**⚠️ Important:** Password special chars (especially `!`) must be URL-encoded as `%21`, and `@` as `%40`. Use the exact Atlas cluster host shown in your Atlas connection string.
 
 ### Step 4.6: Start/Restart Services
 

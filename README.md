@@ -7,7 +7,7 @@ MONGO_URI='mongodb+srv://senharishms108:BhmebRock%21@atlas-cluster-harish-27.7gy
 PORT=3001
 ```
 
-If your Atlas cluster hostname is different, replace `atlas-cluster-harish-27-11-2025.mongodb.net` with the actual host from your Atlas connection string.
+If your Atlas cluster hostname is different, replace the host portion of the URI with the exact host from your Atlas connection string.
 
 Data format to be added: 
 
