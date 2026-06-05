@@ -237,7 +237,7 @@ cd ansible
 ansible-playbook web.yml -i inventory.ini -v
 
 # Configure database server
-niansible-playbook db.yml -i inventory.i -v
+ansible-playbook db.yml -i inventory.i -v
 
 # Or run all in one
 ansible-playbook site.yml -i inventory.ini -v
