@@ -326,7 +326,7 @@ cat /home/ubuntu/travelmemory/backend/.env
 
 **Expected contents:**
 ```
-MONGO_URI=mongodb+srv://senharishms108:BhmebRock%21@atlas-cluster-harish-27-11-2025.mongodb.net/travelmemory?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://senharishms108:BhmebRock%21@atlas-cluster-harish-27.7gyzfqt.mongodb.net/travelmemory?retryWrites=true&w=majority
 PORT=3001
 NODE_ENV=production
 ```
